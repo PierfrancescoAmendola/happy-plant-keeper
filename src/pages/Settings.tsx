@@ -1,20 +1,27 @@
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Settings as SettingsIcon, Bell, Palette, Database } from "lucide-react";
+import { Settings as SettingsIcon, Bell, Palette, Database, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { signOut } from "@/lib/auth-local";
 
 export const Settings = () => {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+
+  const handleLogout = () => {
+    signOut();
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onLogout={handleLogout} />
       <main className="container max-w-2xl mx-auto px-4 py-8">
         <Button
           variant="ghost"
@@ -24,7 +31,7 @@ export const Settings = () => {
           ← Torna al giardino
         </Button>
 
-        <Card>
+        <Card className="card-elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <SettingsIcon className="w-5 h-5 text-primary" />
@@ -57,20 +64,24 @@ export const Settings = () => {
 
               <div className="flex items-center justify-between p-4 rounded-lg bg-accent/50">
                 <div className="flex items-center gap-3">
-                  <Palette className="w-5 h-5 text-muted-foreground" />
+                  {theme === 'dark' ? (
+                    <Moon className="w-5 h-5 text-muted-foreground" />
+                  ) : (
+                    <Sun className="w-5 h-5 text-muted-foreground" />
+                  )}
                   <div>
                     <Label htmlFor="darkMode" className="font-medium">
                       Modalità Scura
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Attiva il tema scuro
+                      {theme === 'dark' ? 'Attiva' : 'Disattiva'}
                     </p>
                   </div>
                 </div>
                 <Switch
                   id="darkMode"
-                  checked={darkMode}
-                  onCheckedChange={setDarkMode}
+                  checked={theme === 'dark'}
+                  onCheckedChange={toggleTheme}
                 />
               </div>
 
@@ -82,7 +93,7 @@ export const Settings = () => {
                       Archiviazione Dati
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      I tuoi dati sono sincronizzati in modo sicuro
+                      I tuoi dati sono salvati localmente sul dispositivo
                     </p>
                   </div>
                 </div>

@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +15,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { createPlant } from "@/lib/db";
+import { getCurrentUser, signOut } from "@/lib/auth-local";
 
 const CATEGORIES = [
   "Indoor",
@@ -41,6 +42,11 @@ export const AddPlant = () => {
     notes: "",
   });
 
+  const handleLogout = () => {
+    signOut();
+    navigate("/");
+  };
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -57,10 +63,7 @@ export const AddPlant = () => {
     e.preventDefault();
     setLoading(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
+    const user = getCurrentUser();
     if (!user) {
       toast({
         title: "Errore",
@@ -71,30 +74,29 @@ export const AddPlant = () => {
       return;
     }
 
-    // Use imagePreview if file was selected, otherwise use URL
     const finalImageUrl = imagePreview || formData.image_url || null;
 
-    const { error } = await supabase.from("plants").insert({
-      user_id: user.id,
-      name: formData.name,
-      category: formData.category,
-      care_frequency: parseInt(formData.care_frequency),
-      image_url: finalImageUrl,
-      notes: formData.notes || null,
-    });
-
-    if (error) {
-      toast({
-        title: "Errore",
-        description: error.message,
-        variant: "destructive",
+    try {
+      await createPlant({
+        user_id: user.id,
+        name: formData.name,
+        category: formData.category,
+        care_frequency: parseInt(formData.care_frequency),
+        image_url: finalImageUrl || undefined,
+        notes: formData.notes || undefined,
       });
-    } else {
+
       toast({
         title: "Pianta aggiunta! 🌱",
         description: `${formData.name} è stata aggiunta al tuo giardino`,
       });
       navigate("/");
+    } catch (error) {
+      toast({
+        title: "Errore",
+        description: "Impossibile aggiungere la pianta",
+        variant: "destructive",
+      });
     }
 
     setLoading(false);
@@ -102,7 +104,7 @@ export const AddPlant = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onLogout={handleLogout} />
       <main className="container max-w-2xl mx-auto px-4 py-8">
         <Button
           variant="ghost"
@@ -115,7 +117,9 @@ export const AddPlant = () => {
 
         <Card className="card-elevated animate-fade-in">
           <CardHeader>
-            <CardTitle className="text-2xl">Aggiungi una nuova pianta 🌿</CardTitle>
+            <CardTitle className="text-2xl bg-gradient-sage bg-clip-text text-transparent">
+              Aggiungi una nuova pianta 🌿
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">

@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Home } from "@/pages/Home";
 import { AddPlant } from "@/pages/AddPlant";
@@ -13,26 +12,24 @@ import { Profile } from "@/pages/Profile";
 import { Settings } from "@/pages/Settings";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { getCurrentUser } from "@/lib/auth-local";
+import { initDB } from "@/lib/db";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [session, setSession] = useState<any>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const init = async () => {
+      await initDB();
+      const currentUser = getCurrentUser();
+      setUser(currentUser);
       setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    };
+    init();
   }, []);
 
   if (loading) {
@@ -45,29 +42,31 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {!session ? (
-              <>
-                <Route path="/" element={<AuthForm />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </>
-            ) : (
-              <>
-                <Route path="/" element={<Home />} />
-                <Route path="/add" element={<AddPlant />} />
-                <Route path="/plant/:id" element={<PlantDetail />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="*" element={<NotFound />} />
-              </>
-            )}
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {!user ? (
+                <>
+                  <Route path="/" element={<AuthForm onAuthChange={setUser} />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </>
+              ) : (
+                <>
+                  <Route path="/" element={<Home onLogout={() => setUser(null)} />} />
+                  <Route path="/add" element={<AddPlant />} />
+                  <Route path="/plant/:id" element={<PlantDetail />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="*" element={<NotFound />} />
+                </>
+              )}
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

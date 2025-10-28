@@ -1,6 +1,5 @@
 import { Sprout, LogOut, Plus, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,25 +10,23 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useState } from "react";
+import { signOut } from "@/lib/auth-local";
 
-export const Header = () => {
+interface HeaderProps {
+  onLogout: () => void;
+}
+
+export const Header = ({ onLogout }: HeaderProps) => {
   const navigate = useNavigate();
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Errore",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Arrivederci! 👋",
-        description: "Logout effettuato con successo",
-      });
-    }
+  const handleLogout = () => {
+    signOut();
+    onLogout();
+    toast({
+      title: "Arrivederci! 👋",
+      description: "Logout effettuato con successo",
+    });
   };
 
   const navigateAndClose = (path: string) => {

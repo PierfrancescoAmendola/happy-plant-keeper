@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Droplet, Trash2 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { it } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { deletePlant, createCareLog, getCareLogsByPlant } from "@/lib/db";
+import { useEffect, useState } from "react";
 
 interface PlantCardProps {
   plant: Plant;
@@ -16,15 +17,22 @@ interface PlantCardProps {
 
 export const PlantCard = ({ plant, onUpdate }: PlantCardProps) => {
   const navigate = useNavigate();
+  const [careLogs, setCareLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchCareLogs = async () => {
+      const logs = await getCareLogsByPlant(plant.id);
+      setCareLogs(logs);
+    };
+    fetchCareLogs();
+  }, [plant.id]);
 
   const getLastCareDate = () => {
-    if (!plant.plant_care_logs || plant.plant_care_logs.length === 0) {
-      return null;
-    }
-    const lastLog = plant.plant_care_logs.sort((a, b) => 
-      new Date(b.care_date).getTime() - new Date(a.care_date).getTime()
+    if (careLogs.length === 0) return null;
+    const lastLog = careLogs.sort((a, b) => 
+      new Date(b.careDate).getTime() - new Date(a.careDate).getTime()
     )[0];
-    return new Date(lastLog.care_date);
+    return new Date(lastLog.careDate);
   };
 
   const needsCare = () => {
@@ -35,41 +43,41 @@ export const PlantCard = ({ plant, onUpdate }: PlantCardProps) => {
   };
 
   const handleCare = async () => {
-    const { error } = await supabase.from("plant_care_logs").insert({
-      plant_id: plant.id,
-      care_type: "water",
-    });
-
-    if (error) {
-      toast({
-        title: "Errore",
-        description: "Impossibile registrare la cura",
-        variant: "destructive",
+    try {
+      await createCareLog({
+        plantId: plant.id,
+        careType: "water",
+        careDate: new Date().toISOString(),
       });
-    } else {
+
       toast({
         title: "Ottimo lavoro! 💚",
         description: `${plant.name} è stata curata`,
       });
       onUpdate();
+    } catch (error) {
+      toast({
+        title: "Errore",
+        description: "Impossibile registrare la cura",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDelete = async () => {
-    const { error } = await supabase.from("plants").delete().eq("id", plant.id);
-
-    if (error) {
-      toast({
-        title: "Errore",
-        description: "Impossibile eliminare la pianta",
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await deletePlant(plant.id);
       toast({
         title: "Pianta rimossa",
         description: `${plant.name} è stata eliminata`,
       });
       onUpdate();
+    } catch (error) {
+      toast({
+        title: "Errore",
+        description: "Impossibile eliminare la pianta",
+        variant: "destructive",
+      });
     }
   };
 
@@ -78,7 +86,7 @@ export const PlantCard = ({ plant, onUpdate }: PlantCardProps) => {
 
   return (
     <Card 
-      className="overflow-hidden hover-lift cursor-pointer group animate-fade-in"
+      className="overflow-hidden hover-lift cursor-pointer group animate-fade-in card-elevated"
       onClick={() => navigate(`/plant/${plant.id}`)}
     >
       <div className="aspect-video bg-muted relative overflow-hidden">
@@ -94,13 +102,15 @@ export const PlantCard = ({ plant, onUpdate }: PlantCardProps) => {
           </div>
         )}
         {status === "needs-care" && (
-          <Badge className="absolute top-2 right-2 bg-warning text-foreground">
+          <Badge className="absolute top-3 right-3 bg-warning text-foreground shadow-lg">
             Da curare
           </Badge>
         )}
       </div>
-      <CardContent className="p-4">
-        <h3 className="font-semibold text-lg mb-1">{plant.name}</h3>
+      <CardContent className="p-5">
+        <h3 className="font-semibold text-lg mb-1 bg-gradient-sage bg-clip-text text-transparent">
+          {plant.name}
+        </h3>
         <p className="text-sm text-muted-foreground mb-2">{plant.category}</p>
         {lastCare ? (
           <p className="text-xs text-muted-foreground">
@@ -110,10 +120,10 @@ export const PlantCard = ({ plant, onUpdate }: PlantCardProps) => {
           <p className="text-xs text-muted-foreground">Nessuna cura registrata</p>
         )}
       </CardContent>
-      <CardFooter className="p-4 pt-0 gap-2" onClick={(e) => e.stopPropagation()}>
+      <CardFooter className="p-5 pt-0 gap-2" onClick={(e) => e.stopPropagation()}>
         <Button
           onClick={handleCare}
-          className="flex-1 gradient-sage hover:opacity-90"
+          className="flex-1 gradient-sage hover:opacity-90 shadow-md"
           size="sm"
         >
           <Droplet className="w-4 h-4 mr-2" />

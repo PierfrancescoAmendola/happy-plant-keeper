@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, User, Mail, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { getCurrentUser, signOut } from "@/lib/auth-local";
 
 export const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -12,14 +12,19 @@ export const Profile = () => {
   const [createdAt, setCreatedAt] = useState<string>("");
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    signOut();
+    navigate("/");
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = getCurrentUser();
       
       if (user) {
         setUserEmail(user.email || "");
-        setCreatedAt(new Date(user.created_at).toLocaleDateString("it-IT"));
+        setCreatedAt(new Date(user.createdAt).toLocaleDateString("it-IT"));
       }
       setLoading(false);
     };
@@ -30,7 +35,7 @@ export const Profile = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
-        <Header />
+        <Header onLogout={handleLogout} />
         <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
@@ -40,7 +45,7 @@ export const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
+      <Header onLogout={handleLogout} />
       <main className="container max-w-2xl mx-auto px-4 py-8">
         <Button
           variant="ghost"
@@ -50,7 +55,7 @@ export const Profile = () => {
           ← Torna al giardino
         </Button>
 
-        <Card>
+        <Card className="card-elevated">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />
