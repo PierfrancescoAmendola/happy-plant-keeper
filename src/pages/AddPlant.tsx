@@ -31,6 +31,8 @@ const CATEGORIES = [
 export const AddPlant = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -38,6 +40,18 @@ export const AddPlant = () => {
     image_url: "",
     notes: "",
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,12 +71,15 @@ export const AddPlant = () => {
       return;
     }
 
+    // Use imagePreview if file was selected, otherwise use URL
+    const finalImageUrl = imagePreview || formData.image_url || null;
+
     const { error } = await supabase.from("plants").insert({
       user_id: user.id,
       name: formData.name,
       category: formData.category,
       care_frequency: parseInt(formData.care_frequency),
-      image_url: formData.image_url || null,
+      image_url: finalImageUrl,
       notes: formData.notes || null,
     });
 
@@ -157,18 +174,67 @@ export const AddPlant = () => {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="image">URL Immagine (opzionale)</Label>
-                <Input
-                  id="image"
-                  type="url"
-                  placeholder="https://esempio.com/immagine.jpg"
-                  value={formData.image_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, image_url: e.target.value })
-                  }
-                  className="transition-all focus:ring-2 focus:ring-primary"
-                />
+              <div className="space-y-3">
+                <Label>Immagine Pianta (opzionale)</Label>
+                <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center space-y-3">
+                  {imagePreview ? (
+                    <div className="space-y-3">
+                      <img 
+                        src={imagePreview} 
+                        alt="Anteprima" 
+                        className="w-full h-48 object-cover rounded-lg"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setImageFile(null);
+                          setImagePreview("");
+                        }}
+                      >
+                        Rimuovi immagine
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground">
+                        Vuoi aggiungere un'immagine per la pianta?
+                      </p>
+                      <Label htmlFor="imageFile" className="cursor-pointer">
+                        <div className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                          Scegli Foto
+                        </div>
+                      </Label>
+                      <Input
+                        id="imageFile"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Puoi scattare una foto o sceglierla dalla galleria
+                      </p>
+                    </>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="image" className="text-xs text-muted-foreground">
+                    Oppure inserisci un URL
+                  </Label>
+                  <Input
+                    id="image"
+                    type="url"
+                    placeholder="https://esempio.com/immagine.jpg"
+                    value={formData.image_url}
+                    onChange={(e) =>
+                      setFormData({ ...formData, image_url: e.target.value })
+                    }
+                    className="transition-all focus:ring-2 focus:ring-primary"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">

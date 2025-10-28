@@ -9,6 +9,8 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { Home } from "@/pages/Home";
 import { AddPlant } from "@/pages/AddPlant";
 import { PlantDetail } from "@/pages/PlantDetail";
+import { Profile } from "@/pages/Profile";
+import { Settings } from "@/pages/Settings";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -58,6 +60,8 @@ const App = () => {
                 <Route path="/" element={<Home />} />
                 <Route path="/add" element={<AddPlant />} />
                 <Route path="/plant/:id" element={<PlantDetail />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<NotFound />} />
               </>
             )}
